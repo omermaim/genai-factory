@@ -13,8 +13,15 @@
 // limitations under the License.
 
 import { User } from '@shared/types';
+import { DataSource } from '@shared/types/dataSource';
+import { Dataset } from '@shared/types/dataset';
+import { Document } from '@shared/types/document';
+import { Model } from '@shared/types/model';
+import { Project } from '@shared/types/project';
+import { PromptTemplate } from '@shared/types/promptTemplate';
+import { Session } from '@shared/types/session';
+import { Query, Workflow } from '@shared/types/workflow';
 import axios, { AxiosResponse } from 'axios';
-
 
 class ApiClient {
   private client
@@ -38,48 +45,25 @@ class ApiClient {
     }
   }
 
-  // eslint-disable-next-line
+  //eslint-disable-next-line
   private handleError(error: any) {
     console.error('Request failed:', error.message);
     return null;
   }
 
-  async listSessions(username?: string, mode?: string, last?: number) {
+  // USERS
+  async getUsers(params?: { name?: string; email?: string; full_name?: string; mode?: string }) {
     try {
-      const response = await this.client.get('/sessions', {
-        params: { last: last, username: username, mode: mode || 'short' }
-      })
-      return this.handleResponse(response)
+      const response = await this.client.get(`/users`, { params });
+      return this.handleResponse(response);
     } catch (error) {
-      return this.handleError(error as Error)
+      this.handleError(error);
     }
   }
 
-  async getSession(id?: string, username?: string) {
+  async getUser(username: string, params?: { email?: string; uid?: string }) {
     try {
-      const response = await this.client.get(`/session/${id || '$last'}`, {
-        headers: { 'x-username': username || 'guest' }
-      })
-      return this.handleResponse(response)
-    } catch (error) {
-      return this.handleError(error as Error)
-    }
-  }
-
-  async getUsers(username?: string) {
-    try {
-      const response = await this.client.get(`/users`, {
-        headers: { 'x-username': username || 'guest' }
-      })
-      return this.handleResponse(response)
-    } catch (error) {
-      return this.handleError(error as Error)
-    }
-  }
-
-  async getUser(username: string) {
-    try {
-      const response = await this.client.get(`/users/${username}`);
+      const response = await this.client.get(`/users/${username}`, { params });
       return this.handleResponse(response);
     } catch (error) {
       return this.handleError(error);
@@ -104,33 +88,405 @@ class ApiClient {
     }
   }
 
-  async deleteUser(username: string) {
+  async deleteUser(username: string, params?: { uid?: string }) {
     try {
-      const response = await this.client.delete(`/users/${username}`);
+      const response = await this.client.delete(`/users/${username}`, { params });
       return this.handleResponse(response);
     } catch (error) {
       return this.handleError(error);
     }
   }
 
-  async submitQuery(id: string, question: string, username?: string) {
+  // SESSIONS
+  async getSessions(username: string, params?: { name?: string; last?: number; created?: string; workflow_id?: string; mode?: string }) {
     try {
-      const response = await this.client.post(
-        '/pipeline/default/run',
-        { session_id: id, question: question },
-        {
-          headers: { 'x-username': username || 'guest' }
-        }
-      )
-      return this.handleResponse(response)
+      const response = await this.client.get(`/users/${username}/sessions`, { params });
+      return this.handleResponse(response);
     } catch (error) {
-      return this.handleError(error as Error)
+      this.handleError(error);
+    }
+  }
+
+  async getSession(username: string, name: string, params?: { uid?: string }) {
+    try {
+      const response = await this.client.get(`users/${username}/sessions/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createSession(username: string, session: Session) {
+    try {
+      const response = await this.client.post(`users/${username}/sessions`, session);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updateSession(username: string, session: Session) {
+    try {
+      const response = await this.client.put(`/users/${username}/sessions/${session.name}`, session);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deleteSession(username: string, name: string, params?: { uid?: string }) {
+    try {
+      const response = await this.client.delete(`/users/${username}/sessions/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // WORKFLOWS
+  async getWorkflows(projectName: string, params?: { name?: string; version?: string; workflow_type?: string; labels?: string[]; mode?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/workflows`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getWorkflow(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/workflows/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createWorkflow(projectName: string, workflow: Workflow) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/workflows`, workflow);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updateWorkflow(projectName: string, workflow: Workflow) {
+    try {
+      const response = await this.client.put(`/projects/${projectName}/workflows/${workflow.name}`, workflow);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deleteWorkflow(projectName: string, name: string, params?: { uid?: string }) {
+    try {
+      const response = await this.client.delete(`/projects/${projectName}/workflows/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async inferWorkflow(projectName: string, workflowName: string, query: Query) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/workflows/${workflowName}/infer`, query);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // PROJECTS
+  async getProjects(params?: { name?: string; owner_name?: string; mode?: string; labels?: string[] }) {
+    try {
+      const response = await this.client.get(`/projects`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getProject(projectName: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createProject(project: Project) {
+    try {
+      const response = await this.client.post(`/projects`, project);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updateProject(project: Project) {
+    try {
+      const response = await this.client.put(`/projects/${project.name}`, project);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deleteProject(projectName: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.delete(`/projects/${projectName}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // DATASOURCES
+  async getDataSources(projectName: string, params?: { name?: string; version?: string; data_source_type?: string; labels?: string[]; mode?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/data_sources`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getDataSource(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/data_sources/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createDataSource(projectName: string, dataSource: DataSource) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/data_sources`, dataSource);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updateDataSource(projectName: string, dataSource: DataSource) {
+    try {
+      const response = await this.client.put(`/projects/${projectName}/data_sources/${dataSource.name}`, dataSource);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deleteDataSource(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.delete(`/projects/${projectName}/data_sources/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // eslint-disable-next-line
+  async ingestDocument(projectName: string, name: string, ingestData: { loader: string; path: string; metadata?: any; version?: string; from_file: boolean }) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/data_sources/${name}/ingest`, ingestData);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // DATASETS
+  async getDatasets(projectName: string, params?: { name?: string; version?: string; task?: string; labels?: string[]; mode?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/datasets`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getDataset(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/datasets/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createDataset(projectName: string, dataset: Dataset) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/datasets`, dataset);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updateDataset(projectName: string, dataset: Dataset) {
+    try {
+      const response = await this.client.put(`/projects/${projectName}/datasets/${dataset.name}`, dataset);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deleteDataset(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.delete(`/projects/${projectName}/datasets/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // MODELS
+  async getModels(projectName: string, params?: { name?: string; version?: string; model_type?: string; labels?: string[]; mode?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/models`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getModel(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/models/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createModel(projectName: string, model: Model) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/models`, model);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updateModel(projectName: string, model: Model) {
+    try {
+      const response = await this.client.put(`/projects/${projectName}/models/${model.name}`, model);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deleteModel(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.delete(`/projects/${projectName}/models/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // DOCUMENTS
+  async getDocuments(projectName: string, params?: { name?: string; version?: string; labels?: string[]; mode?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/documents`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getDocument(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/documents/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createDocument(projectName: string, document: Document) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/documents`, document);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updateDocument(projectName: string, document: Document) {
+    try {
+      const response = await this.client.put(`/projects/${projectName}/documents/${document.name}`, document);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deleteDocument(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.delete(`/projects/${projectName}/documents/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  // PROMPT TEMPLATES
+  async getPromptTemplates(projectName: string, params?: { name?: string; version?: string; labels?: string[]; mode?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/prompt_templates`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async getPromptTemplate(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.get(`/projects/${projectName}/prompt_templates/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async createPromptTemplate(projectName: string, promptTemplate: PromptTemplate) {
+    try {
+      const response = await this.client.post(`/projects/${projectName}/prompt_templates`, promptTemplate);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async updatePromptTemplate(projectName: string, promptTemplate: PromptTemplate) {
+    try {
+      const response = await this.client.put(`/projects/${projectName}/prompt_templates/${promptTemplate.name}`, promptTemplate);
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async deletePromptTemplate(projectName: string, name: string, params?: { uid?: string; version?: string }) {
+    try {
+      const response = await this.client.delete(`/projects/${projectName}/prompt_templates/${name}`, { params });
+      return this.handleResponse(response);
+    } catch (error) {
+      return this.handleError(error);
     }
   }
 }
 
 function getClient() {
-  return new ApiClient() // Return the real client here
+  return new ApiClient()
 }
 
 const Client = getClient()

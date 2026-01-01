@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Client from '@services/Api';
-import { ChatHistory, DataRow, User } from '@shared/types';
+import { ChatHistory, User } from '@shared/types';
 import { atom } from 'jotai';
 import { atomWithStorage } from "jotai/utils";
+import { Project } from '@shared/types/project'
 
 
 export const sessionIdAtom = atom<string>('');
@@ -23,23 +23,15 @@ export const adminAtom = atomWithStorage('admin', localStorage.getItem('admin') 
 export const modalAtom = atom<boolean>(false);
 export const asyncAtom = atom<boolean>(false);
 export const messagesAtom = atom<ChatHistory[]>([]);
-export const conversationsAtom = atom<ChatHistory[]>([]);
-export const userAtom = atomWithStorage<User | null>('user', localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') as string) : null);
+export const userWithTokenAtom = atomWithStorage<User | null>('user', localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') as string) : null);
+export const publicUserAtom = atom<User>({});
 export const usernameAtom = atom<string>('');
-export const selectedUserAtom = atom<User>({ username: '', admin: false, token: '' });
-export const comparisonUserAtom = atom<User>({ username: '', admin: false, token: '' });
+export const isTypingAtom = atom<boolean>(false);
+export const canSendMessageAtom = atom<boolean>(true);
+export const isMessageErrorAtom = atom<boolean>(false);
+export const projectAtom = atom<Project | null>(null)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const selectedRowAtom = atom<any>({});
 
 
-export const usersAtom = atom<DataRow<User>[]>([]);
-export const createUserAtom = atom(
-  null,
-  async (get, set, newUser: User) => {
-    try {
-      const createdUser = await Client.createUser(newUser);
-      set(usersAtom, (prev) => [...prev, createdUser]);
 
-    } catch (error) {
-      console.error(error);
-    }
-  }
-);
